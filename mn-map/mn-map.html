@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minnesota School District Map</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom CSS -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+        }
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2rem;
+            font-weight: 600;
+            text-align: center;
+            display: inline;
+        }
+        .header p {
+            color: #7f8c8d;
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 120px);
+            gap: 0;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+            background: transparent;
+            border-radius: 0 0 0 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            overflow-y: auto;
+            box-shadow: -2px 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar h2 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 0.5rem;
+        }
+
+        .district-info {
+            background: #ecf0f1;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #3498db;
+        }
+
+        .district-info h3 {
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        .district-info p {
+            color: #7f8c8d;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 0.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0.2rem;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+        }
+
+        .controls button:hover {
+            background: #2980b9;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .legend h4 {
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.3rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 0.5rem;
+            border-radius: 3px;
+        }
+
+        .district-label {
+            pointer-events: none;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #222;
+            text-shadow: 1px 1px 4px #fff, 0 0 2px #fff;
+            background: rgba(255,255,255,0.7);
+            border-radius: 6px;
+            padding: 2px 8px;
+            border: 1px solid #3498db;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            white-space: nowrap;
+        }
+
+        .logo-img {
+            height: 48px;
+            vertical-align: middle;
+            margin-right: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                height: calc(100vh - 100px);
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 200px;
+                order: 2;
+            }
+            
+            .map-container {
+                order: 1;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-top">
+            <img src="Logo.png" alt="SafetyFirst Logo" class="logo-img" />
+            <h1>SafetyFirst Playground Maintenance</h1>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="map-container">
+            <div id="map"></div>
+            
+            <div class="controls">
+                <button id="toggle-fills-btn" style="background: #f39c12; color: #fff; border: none; border-radius: 5px; padding: 0.5rem 1.5rem; font-size: 1rem; cursor: pointer;">Hide District Colors</button>
+            </div>
+
+            <!-- Legend removed as requested -->
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Loading school district data...</p>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <h2>District Information</h2>
+            <div id="district-info">
+                <p>Click on a school district to view detailed information.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Shapefile.js for parsing shapefiles -->
+    <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
+    
+    <!-- Esri Leaflet plugin for ArcGIS Feature Service support -->
+    <script src="https://unpkg.com/esri-leaflet@3.0.11/dist/esri-leaflet.js"></script>
+    
+    <!-- Main application script -->
+    <script src="app.js"></script>
+    <script>
+        // Toggle all district fills on/off
+        let fillsHidden = false;
+        document.getElementById('toggle-fills-btn').onclick = function() {
+            fillsHidden = !fillsHidden;
+            this.textContent = fillsHidden ? 'Show District Colors' : 'Hide District Colors';
+            for (const id in window.districtLayerRefs) {
+                const layer = window.districtLayerRefs[id];
+                const color = (window.districtEdits && window.districtEdits[id] && window.districtEdits[id].color) || null;
+                layer.setStyle({
+                    color: '#000',
+                    fillColor: fillsHidden ? 'transparent' : (color || 'transparent'),
+                    fillOpacity: fillsHidden ? 0 : (color ? 0.5 : 0),
+                    weight: 2
+                });
+            }
+        };
+    </script>
+</body>
+</html> 
